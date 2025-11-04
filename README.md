@@ -36,7 +36,7 @@ Python: 3.9 или выше
 ## Установка
 Склонируйте репозиторий:
 ```bash
-git clone https://github.com/your-username/markov-interpreter.git
+git clone https://github.com/Asus647/InterpreterOfAlgMark.git
 cd markov-interpreter
 ```
 Создайте виртуальное окружение (рекомендуется):
