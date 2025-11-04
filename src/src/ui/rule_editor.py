@@ -40,11 +40,11 @@ class RuleEditor:
             label="Терминальность правила (остановка выполнения после применения)",
             value=False
         )
-        
+
         # Отображение ошибок
         self.error_text = ft.Text(
             "",
-            color=ft.colors.RED,
+            color="red",
             size=12,
             visible=False
         )
@@ -52,28 +52,28 @@ class RuleEditor:
         # Кнопки
         self.add_button = ft.ElevatedButton(
             "Добавить правило",
-            icon=ft.icons.ADD,
+            icon="add",
             on_click=self._add_rule,
             disabled=True
         )
         
         self.update_button = ft.ElevatedButton(
             "Обновить правило",
-            icon=ft.icons.UPDATE,
+            icon="update",
             on_click=self._update_rule,
             disabled=True
         )
         
         self.delete_button = ft.ElevatedButton(
             "Удалить правило",
-            icon=ft.icons.DELETE,
+            icon="delete",
             on_click=self._delete_rule,
             disabled=True
         )
         
         self.clear_button = ft.ElevatedButton(
             "Очистить все",
-            icon=ft.icons.CLEAR_ALL,
+            icon="clear_all",
             on_click=self._clear_rules
         )
         
@@ -313,9 +313,9 @@ class RuleEditor:
                 # Показать пустое состояние
                 empty_state = ft.Container(
                     content=ft.Column([
-                        ft.Icon(ft.icons.RULE, size=48, color=ft.colors.GREY_400),
-                        ft.Text("Нет определенный правил", style="bodyMedium", color=ft.colors.GREY_600),
-                        ft.Text("Добавить правила используя форму выше", style="bodySmall", color=ft.colors.GREY_500),
+                        ft.Icon(ft.icons.RULE, size=48, color="grey"),
+                        ft.Text("Нет определенный правил", style="bodyMedium", color="grey"),
+                        ft.Text("Добавить правила используя форму выше", style="bodySmall", color="grey"),
                     ], horizontal_alignment=ft.CrossAxisAlignment.CENTER),
                     padding=40,
                     alignment=ft.alignment.center
@@ -338,8 +338,8 @@ class RuleEditor:
         """Создание карточки для отображения правил"""
         try:
             final_badge = ft.Container(
-                content=ft.Text("Терминальность", size=10, color=ft.colors.RED),
-                bgcolor=ft.colors.RED_100,
+                content=ft.Text("Терминальность", size=10, color="red"),
+                bgcolor="red",
                 padding=ft.padding.symmetric(horizontal=8, vertical=2),
                 border_radius=10
             ) if rule.is_final else ft.Container()
@@ -353,7 +353,7 @@ class RuleEditor:
                         ]),
                         ft.Row([
                             ft.Text(f"Найти: '{rule.pattern}'", size=14),
-                            ft.Icon(ft.icons.ARROW_FORWARD, size=16),
+                            ft.Icon("arrow_forward", size=16),
                             ft.Text(f"Заменить: '{rule.replacement}'", size=14),
                         ])
                     ]),
@@ -365,7 +365,7 @@ class RuleEditor:
             # Резервная карта на случай ошибки
             return ft.Card(
                 content=ft.Container(
-                    content=ft.Text(f"Ошибка отобрежения карты {index + 1}", color=ft.colors.RED),
+                    content=ft.Text(f"Ошибка отобрежения карты {index + 1}", color="red"),
                     padding=10
                 )
             )

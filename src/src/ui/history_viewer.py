@@ -20,7 +20,7 @@ class HistoryViewer:
         
         self.clear_button = ft.ElevatedButton(
             "Очистить историю",
-            icon=ft.icons.CLEAR_ALL,
+            icon="clear_all",
             on_click=self._clear_history
         )
     
@@ -73,8 +73,8 @@ class HistoryViewer:
     def _create_history_card(self, entry: Dict[str, Any]) -> ft.Card:
         """Создание карточки для ввода истории"""
         final_badge = ft.Container(
-            content=ft.Text("Терминальность", size=10, color=ft.colors.RED),
-            bgcolor=ft.colors.RED_100,
+            content=ft.Text("Терминальность", size=10, color="red"),
+            bgcolor="red",
             padding=ft.padding.symmetric(horizontal=8, vertical=2),
             border_radius=10
         ) if entry.get('is_final', False) else ft.Container()

@@ -1,28 +1,34 @@
-import flet as ft
+#!/usr/bin/env python3
+"""
+Основная точка входа
+"""
 
-def main(page: ft.Page):
-    page.title = "Flet counter example"
-    page.vertical_alignment = ft.MainAxisAlignment.CENTER
+import sys
+import os
 
-    txt_number = ft.TextField(value="0", text_align=ft.TextAlign.RIGHT, width=100)
+# Добавление src в путь
+sys.path.append(os.path.join(os.path.dirname(__file__), 'src'))
 
-    def minus_click(e):
-        txt_number.value = str(int(txt_number.value) - 1)
-        page.update()
+def main():
+    """Основная точка вхождения"""
+    try:
+        from src.ui.main_window import main as app_main
+        import flet as ft
+        
+        print("Запуск...")
+        
+        # Запуск приложения
+        ft.app(target=app_main)
+        
+    except ImportError as e:
+        print(f"Ошибка: Отсутствуют зависимости - {e}")
+        print("Пожалуйста установите необходимые пакеты: pip install -r requirements.txt")
+        return 1
+    except Exception as e:
+        print(f"Ошибка запуска: {e}")
+        return 1
+    
+    return 0
 
-    def plus_click(e):
-        txt_number.value = str(int(txt_number.value) + 1)
-        page.update()
-
-    page.add(
-        ft.Row(
-            [
-                ft.IconButton(ft.Icons.REMOVE, on_click=minus_click),
-                txt_number,
-                ft.IconButton(ft.Icons.ADD, on_click=plus_click),
-            ],
-            alignment=ft.MainAxisAlignment.CENTER,
-        )
-    )
-
-ft.app(main)
+if __name__ == "__main__":
+    sys.exit(main())
