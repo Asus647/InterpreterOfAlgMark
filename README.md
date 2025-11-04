@@ -1,81 +1,72 @@
-# Interpreterofalgmark app
+##Интерпретатор Алгоритмов Маркова
+Современное десктопное приложение для работы с нормальными алгоритмами Маркова. Включает графический интерфейс для создания, тестирования и выполнения текстовых преобразований.
 
-## Run the app
+#Возможности
+  Визуальный редактор правил - интуитивный интерфейс для создания и управления правилами Маркова
 
-### uv
+  Выполнение в реальном времени - пошаговое выполнение алгоритма с детальной историей
 
-Run as a desktop app:
+  Готовые наборы правил - предопределенные наборы для распространенных задач
 
-```
-uv run flet run
-```
+  Управление проектами - сохранение и загрузка наборов правил
 
-Run as a web app:
+  Обработка ошибок - комплексная валидация и обнаружение циклов
 
-```
-uv run flet run --web
-```
+  Аналитика выполнения - детальная статистика и отслеживание истории
 
-### Poetry
+#Системные требования
+Минимальные требования
+ОС: Windows 10, macOS 10.14+, или Ubuntu 18.04+
 
-Install dependencies from `pyproject.toml`:
+Python: 3.8 или выше
 
-```
-poetry install
-```
+ОЗУ: 4 ГБ
 
-Run as a desktop app:
+Место на диске: 100 МБ свободного места
 
-```
-poetry run flet run
-```
+Рекомендуемые
+ОС: Windows 11, macOS 12+, или Ubuntu 20.04+
 
-Run as a web app:
+Python: 3.9 или выше
 
-```
-poetry run flet run --web
-```
+ОЗУ: 8 ГБ
 
-For more details on running the app, refer to the [Getting Started Guide](https://flet.dev/docs/getting-started/).
+Место на диске: 500 МБ свободного места
 
-## Build the app
+#Установка
+Склонируйте репозиторий:
 
-### Android
+bash
+git clone https://github.com/your-username/markov-interpreter.git
+cd markov-interpreter
+Создайте виртуальное окружение (рекомендуется):
 
-```
-flet build apk -v
-```
+bash
+python -m venv venv
+source venv/bin/activate  # Linux/macOS
+# ИЛИ
+venv\Scripts\activate  # Windows
+Установите зависимости:
 
-For more details on building and signing `.apk` or `.aab`, refer to the [Android Packaging Guide](https://flet.dev/docs/publish/android/).
+bash
+pip install -r requirements.txt
+Запустите приложение:
 
-### iOS
+bash
+python main.py
+#Использование
+Базовый рабочий процесс
+Определите правила: Используйте редактор правил для создания преобразований
 
-```
-flet build ipa -v
-```
+Введите текст: Введите текст в область ввода
 
-For more details on building and signing `.ipa`, refer to the [iOS Packaging Guide](https://flet.dev/docs/publish/ios/).
+Выполните: Нажмите "Execute Algorithm" для обработки текста
 
-### macOS
+Проанализируйте: Просмотрите результаты и историю выполнения
 
-```
-flet build macos -v
-```
+Синтаксис правил
+Паттерн: Текст для поиска (обязательно)
 
-For more details on building macOS package, refer to the [macOS Packaging Guide](https://flet.dev/docs/publish/macos/).
+Замена: Текст для замены
 
-### Linux
-
-```
-flet build linux -v
-```
-
-For more details on building Linux package, refer to the [Linux Packaging Guide](https://flet.dev/docs/publish/linux/).
-
-### Windows
-
-```
-flet build windows -v
-```
-
-For more details on building Windows package, refer to the [Windows Packaging Guide](https://flet.dev/docs/publish/windows/).
+Финальное правило: Останавливает выполнение после применения
