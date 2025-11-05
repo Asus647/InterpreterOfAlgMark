@@ -1,5 +1,5 @@
 """
-Основное окно приложения
+Основное окно
 """
 
 import flet as ft
@@ -7,38 +7,69 @@ from typing import List, Optional
 from ..core.markov_engine import MarkovEngine, Rule
 from ..core.exceptions import RuleValidationError, ExecutionLimitError
 from ..utils.presets import RulePresets
+from ..utils.file_io import ProjectManager
 from .rule_editor import RuleEditor
 from .history_viewer import HistoryViewer
 
 class MarkovApp:
-    """Основной класс приложения"""
+    """Класс исполняющий алгоритмы"""
     
-    def __init__(self, page: Optional[ft.Page] = None):
+    def __init__(self, page: ft.Page):
         self.page = page
         self.engine = MarkovEngine()
+        self.project_manager = ProjectManager()
         self.rule_editor = RuleEditor(
             on_rule_change=self._on_rules_changed,
             on_error=self._show_error_dialog
         )
         self.history_viewer = HistoryViewer()
         
-        # Создание компонентов ПИ
+        # Сначала создаем кнопки меню
+        self._create_menu_buttons()
+        
+        # Затем создаем остальные компоненты
         self._create_components()
     
+    def _create_menu_buttons(self):
+        """Создание кнопок для взаимодействия с файлами"""
+        self.save_button = ft.ElevatedButton(
+            "Сохранить проект",
+            icon="save",
+            on_click=self._save_project,
+        )
+        
+        self.load_button = ft.ElevatedButton(
+            "Загрузить проект", 
+            icon="folder_open",
+            on_click=self._load_project
+        )
+        
+        self.export_button = ft.ElevatedButton(
+            "Экспорт правил",
+            icon="exit_to_app",
+            on_click=self._export_rules
+        )
+        
+        self.import_button = ft.ElevatedButton(
+            "Импорт правил",
+            icon="input", 
+            on_click=self._import_rules
+        )
+    
     def _create_components(self):
-        """Создание основных компонентов ПИ"""
-        # Текстовые поля для ввода\вывода
+        """Создание основных элементов ПИ"""
+        # Текстовые поля для ввода/вывода
         self.input_text = ft.TextField(
-            label="Вводимый текст",
+            label="Входной текст",
             multiline=True,
             min_lines=5,
             max_lines=10,
             expand=True,
-            hint_text="Введите текст для начала работы..."
+            hint_text="Введите текст для обработки..."
         )
         
         self.output_text = ft.TextField(
-            label="Результат",
+            label="Выходной текст",
             multiline=True,
             min_lines=5,
             max_lines=10,
@@ -46,7 +77,7 @@ class MarkovApp:
             read_only=True
         )
         
-        # Кнопки
+        # Исполняющие кнопки
         self.execute_button = ft.ElevatedButton(
             "Выполнить алгоритм",
             icon="play_arrow",
@@ -61,29 +92,31 @@ class MarkovApp:
             expand=True
         )
         
-        # Шаблонные алгоритмы
+        # Выпадающий список пресетов
         self.presets_dropdown = ft.Dropdown(
-            label="Загрузить шаблон",
-            hint_text="Выберите предопределенный набор правил",
+            label="Загрузить пресет",
+            hint_text="Выберите готовый набор правил",
             options=[
-                ft.dropdown.Option(key, key.replace('_', ' ').title())
-                for key in RulePresets.get_presets().keys()
+                ft.dropdown.Option('transliteration', 'Транслитерация (кириллица в латиницу)'),
+                ft.dropdown.Option('text_normalization', 'Нормализация текста'),
+                ft.dropdown.Option('html_escaping', 'HTML-экранирование'),
+                ft.dropdown.Option('markdown_cleanup', 'Очистка Markdown'),
             ],
             on_change=self._load_preset,
             expand=True
         )
         
         # Отображение статуса
-        self.status_bar = ft.Text("Ready", style="bodySmall")
+        self.status_bar = ft.Text("Готов", style="bodySmall")
         
         # Индикатор прогресса
         self.progress_ring = ft.ProgressRing(visible=False)
         
-        # Окна для просмотра различного контента
+        # Создание окон
         self._create_tabs()
     
     def _create_tabs(self):
-        """Основное окно"""
+        """Создание основных окон"""
         self.main_tabs = ft.Tabs(
             selected_index=0,
             animation_duration=300,
@@ -102,11 +135,19 @@ class MarkovApp:
         )
     
     def _build_editor_tab(self) -> ft.Container:
-        """Окно редактора"""
+        """Построение окна редактора"""
         text_area_row = ft.Row([
             ft.Column([self.input_text], expand=1),
             ft.Column([self.output_text], expand=1),
         ])
+        
+        file_ops_row = ft.Row([
+            self.save_button,
+            self.load_button,
+            self.export_button,
+            self.import_button,
+        ])
+        
         
         control_row = ft.Row([
             self.execute_button,
@@ -121,6 +162,9 @@ class MarkovApp:
         
         return ft.Container(
             content=ft.Column([
+                ft.Text("Файловые операции", size=16, weight=ft.FontWeight.BOLD),
+                file_ops_row,
+                ft.Divider(),
                 text_area_row,
                 control_row,
                 status_row,
@@ -131,28 +175,28 @@ class MarkovApp:
         )
     
     def _build_history_tab(self) -> ft.Container:
-        """Окно просмотра истории"""
+        """Построение окна с историей выполнения правил"""
         return ft.Container(
             content=self.history_viewer.build(),
             padding=20
         )
     
     def _on_rules_changed(self, rules: List[Rule]):
-        """Вызов когда правила были изменены"""
+        """Вызов когда правила изменились"""
         try:
             self.engine.clear_rules()
             for rule in rules:
                 self.engine.add_rule(rule.pattern, rule.replacement, rule.is_final)
             
-            self._update_status(f"Измененные правила: {len(rules)} правила загружены")
+            self._update_status(f"Правила обновлены: {len(rules)} правил загружено")
             
         except RuleValidationError as e:
-            self._show_error_dialog(f"Ошибка проверки првила: {str(e)}")
+            self._show_error_dialog(f"Ошибка валидации правил: {str(e)}")
         except Exception as e:
-            self._show_error_dialog(f"Ошибка изменения правила: {str(e)}")
+            self._show_error_dialog(f"Ошибка обновления правил: {str(e)}")
     
     def _load_preset(self, e):
-        """Загрузить выбранные шаблоны"""
+        """Загрузить выбранный пресет"""
         preset_key = self.presets_dropdown.value
         if not preset_key:
             return
@@ -160,42 +204,42 @@ class MarkovApp:
         try:
             presets = RulePresets.get_presets()
             if preset_key in presets:
-                # Преобразование набора кортежей в объект набора правил
+                # Преобразование кортежей в объекты правил
                 rules = []
                 for pattern, replacement, is_final in presets[preset_key]:
                     rules.append(Rule(pattern, replacement, is_final))
                 
                 self.rule_editor.set_rules(rules)
-                self._update_status(f"Загруженные шаблоны: {preset_key}")
+                self._update_status(f"Загружен пресет: {preset_key}")
                 
-                # Показать информацию об загруженных шаблонах
+                # Отображение информации о загруженном пресете
                 rule_count = len(rules)
                 final_rules = sum(1 for r in rules if r.is_final)
                 self._show_info_dialog(
-                    "Шаблон загружен",
-                    f"Успешно загружен '{preset_key.replace('_', ' ').title()}' шаблон.\n\n"
-                    f"• Загружено правил: {rule_count}\n"
-                    f"• Терминальных правил: {final_rules}\n"
-                    f"• Обычные правила: {rule_count - final_rules}"
+                    "Пресет загружен",
+                    f"Успешно загружен пресет '{preset_key.replace('_', ' ').title()}'.\n\n"
+                    f"• Правил загружено: {rule_count}\n"
+                    f"• Финальных правил: {final_rules}\n"
+                    f"• Обычных правил: {rule_count - final_rules}"
                 )
             else:
-                self._show_error_dialog(f"Шаблон '{preset_key}' не найден")
+                self._show_error_dialog(f"Пресет '{preset_key}' не найден")
                 
         except Exception as e:
-            self._show_error_dialog(f"Ошибка загрузки шаблона: {str(e)}")
+            self._show_error_dialog(f"Ошибка загрузки пресета: {str(e)}")
     
     async def _execute_algorithm(self, e):
-        """Выполнение алгоритма"""
+        """Выполнить алгоритм"""
         input_text = self.input_text.value.strip()
         if not input_text:
-            self._show_warning_dialog("Поле вводу пусто", "Введите текст для выполнения.")
+            self._show_warning_dialog("Пустой ввод", "Пожалуйста, введите текст для обработки.")
             return
         
         if not self.engine.rules:
-            self._show_warning_dialog("Нет правил", "Определите хотя бы 1 правиле перед выполнением алгоритма.")
+            self._show_warning_dialog("Нет правил", "Пожалуйста, определите хотя бы одно правило перед выполнением.")
             return
         
-        # Отображение прогресса
+        # Показать прогресс
         self._set_processing(True)
         
         try:
@@ -206,31 +250,31 @@ class MarkovApp:
             self.output_text.value = result['output']
             self.output_text.update()
             
-            # Обновить историю
+            # Обновить историю применения правил
             self.history_viewer.set_history(
                 result['history'], 
                 result['statistics']
             )
             
-            # Стутас обновления
-            status_msg = (f"Сделано: {result['statistics']['iterations']} итераций, "
+            # Обновить статус
+            status_msg = (f"Завершено: {result['statistics']['iterations']} итераций, "
                          f"{result['statistics']['total_replacements']} замен")
             self._update_status(status_msg)
             
-            # Показать предупреждения есть есть
+            # Показать преупреждения если есть
             if result['warnings']:
                 self._show_warnings(result['warnings'])
                 
         except ExecutionLimitError as e:
-            self._show_warning_dialog(
-                "Превышено ограничение на выполнение",
-                f"Алгоритм был остановлен чтобы не допустить бесконечное выполнение.\n\n"
+            self._show_error_dialog(
+                "Достигнут лимит выполнения",
+                f"Алгоритм был остановлен для предотвращения бесконечного выполнения.\n\n"
                 f"Причина: {str(e)}\n\n"
-                f"Это может показать:\n"
-                f"• Потенциальное зацикливание в правилах\n"
-                f"• Правила могут вызывать неограниченный рост текста\n"
-                f"• Сложные итерации правил\n\n"
-                f"Проверьте свои правила на зацикливание и взаимозаменение."
+                f"Это может указывать на:\n"
+                f"• Потенциальный бесконечный цикл в правилах\n"
+                f"• Правила, вызывающие неограниченный рост\n"
+                f"• Сложные взаимодействия правил\n\n"
+                f"Проверьте правила на наличие циклов или взаимных замен."
             )
             self._update_status(f"Остановлено: {str(e)}")
             
@@ -243,7 +287,7 @@ class MarkovApp:
             self._set_processing(False)
     
     def _clear_all(self, e):
-        """Очистить все поля ввода\вывода"""
+        """Очищает все поля"""
         try:
             self.input_text.value = ""
             self.output_text.value = ""
@@ -254,37 +298,114 @@ class MarkovApp:
             self._show_error_dialog(f"Ошибка очистки полей: {str(e)}")
     
     def _set_processing(self, processing: bool):
-        """Задать статус обработки"""
-        self.execute_button.disabled = processing
-        self.progress_ring.visible = processing
-        self.execute_button.update()
-        self.progress_ring.update()
+        """Задает состояние обработки"""
+        try:
+            self.execute_button.disabled = processing
+            self.progress_ring.visible = processing
+            self.execute_button.update()
+            self.progress_ring.update()
+        except Exception as e:
+            pass
     
     def _update_status(self, message: str):
-        """Обновить статус шкалы"""
-        self.status_bar.value = message
-        self.status_bar.update()
+        """Обновление статуса"""
+        try:
+            self.status_bar.value = message
+            self.status_bar.update()
+        except Exception as e:
+            pass
+    
+    # Операции с файлами
+    async def _save_project(self, e):
+        """Сохранить текущий проект в файл"""
+        try:
+            rules = self.rule_editor.get_rules()
+            input_text = self.input_text.value or ""
+            output_text = self.output_text.value or ""
+            
+            # Просто сохраняем в текущую директорию
+            filepath = "project.json"
+            success = self.project_manager.save_project(
+                filepath, rules, input_text, output_text
+            )
+            
+            if success:
+                self._show_info_dialog("Успех", f"Проект успешно сохранен в {filepath}!")
+                self._update_status(f"Проект сохранен: {filepath}")
+            else:
+                self._show_error_dialog("Ошибка", "Не удалось сохранить проект")
+                
+        except Exception as ex:
+            self._show_error_dialog("Ошибка сохранения", str(ex))
+    
+    async def _load_project(self, e):
+        """Загрузить проект из файла"""
+        try:
+            # Просто загружаем из текущей директории
+            filepath = "project.json"
+            project_data = self.project_manager.load_project(filepath)
+            
+            if project_data:
+                self.rule_editor.set_rules(project_data['rules'])
+                self.input_text.value = project_data.get('input_text', '')
+                self.output_text.value = project_data.get('output_text', '')
+                self.input_text.update()
+                self.output_text.update()
+                self._update_status(f"Проект загружен: {filepath}")
+                self._show_info_dialog("Успех", "Проект успешно загружен!")
+            else:
+                self._show_error_dialog("Ошибка", f"Не удалось загрузить проект из {filepath}")
+                
+        except Exception as ex:
+            self._show_error_dialog("Ошибка загрузки", str(ex))
+    
+    async def _export_rules(self, e):
+        """Экспорт правил в json файл"""
+        try:
+            rules = self.rule_editor.get_rules()
+            
+            # Просто сохраняем в текущую директорию
+            filepath = "rules_export.json"
+            success = self.project_manager.export_rules_json(filepath, rules)
+            
+            if success:
+                self._show_info_dialog("Успех", f"Правила экспортированы в {filepath}: {len(rules)} правил")
+                self._update_status(f"Правила экспортированы: {filepath}")
+            else:
+                self._show_error_dialog("Ошибка", "Не удалось экспортировать правила")
+                
+        except Exception as ex:
+            self._show_error_dialog("Ошибка экспорта", str(ex))
+    
+    async def _import_rules(self, e):
+        """Импорт правил из json файла"""
+        try:
+            # Просто загружаем из текущей директории
+            filepath = "rules_export.json"
+            rules = self.project_manager.import_rules_json(filepath)
+            
+            if rules:
+                self.rule_editor.set_rules(rules)
+                self._update_status(f"Правила импортированы: {len(rules)} правил")
+                self._show_info_dialog("Успех", f"Правила импортированы: {len(rules)} правил")
+            else:
+                self._show_error_dialog("Ошибка", f"Не удалось импортировать правила из {filepath}")
+                
+        except Exception as ex:
+            self._show_error_dialog("Ошибка импорта", str(ex))
     
     def _show_warnings(self, warnings: List[str]):
-        """Показать предупреждений"""
-        if not warnings or not self.page:
+        """Показать окно с предупреждениями"""
+        if not warnings:
             return
         
         warning_content = "\n• ".join(warnings)
         
-        def close_dialog(e):
-            self.page.dialog.open = False
-            self.page.update()
-        
-        def continue_execution(e):
-            self.page.dialog.open = False
-            self.page.update()
-        
-        warning_dialog = ft.AlertDialog(
+        dialog = ft.AlertDialog(
             modal=True,
-            title=ft.Text("Обнаружены потенциальные проблема"),
+            title=ft.Text("Обнаружены потенциальные проблемы"),
             content=ft.Column([
-                ft.Text("Следующие потенциальные проблемы были обнаружены:"),
+                ft.Text("Обнаружены следующие потенциальные проблемы:"),
                 ft.Container(
                     content=ft.Text(f"• {warning_content}"),
                     margin=ft.margin.only(top=10, left=10),
@@ -292,113 +413,98 @@ class MarkovApp:
                     bgcolor="yellow",
                     border_radius=8
                 ),
-                ft.Text("\nВы можете продолжить выполнение, но будьте осторожны."),
+                ft.Text("\nВы можете продолжить выполнение, но будьте осторожны с возможными бесконечными циклами."),
             ], tight=True),
             actions=[
-                ft.TextButton("Все равно продолжить", on_click=continue_execution),
-                ft.TextButton("просмотреть ошибки", on_click=close_dialog),
+                ft.TextButton("Продолжить", on_click=lambda e: self._close_dialog(dialog)),
             ],
             actions_alignment=ft.MainAxisAlignment.END,
         )
         
-        self.page.dialog = warning_dialog
-        warning_dialog.open = True
+        self.page.dialog = dialog
+        dialog.open = True
         self.page.update()
     
     def _show_warning_dialog(self, title: str, message: str):
-        """Показать окно предупреждений"""
-        if not self.page:
-            print(f"Предупреждение: {title} - {message}")
-            return
-        
-        def close_dialog(e):
-            self.page.dialog.open = False
-            self.page.update()
-        
-        warning_dialog = ft.AlertDialog(
+        """Показать окно с предупреждениями"""
+        dialog = ft.AlertDialog(
             modal=True,
             title=ft.Text(title),
             content=ft.Text(message),
             actions=[
-                ft.TextButton("OK", on_click=close_dialog),
+                ft.TextButton("OK", on_click=lambda e: self._close_dialog(dialog)),
             ],
         )
         
-        self.page.dialog = warning_dialog
-        warning_dialog.open = True
+        self.page.dialog = dialog
+        dialog.open = True
         self.page.update()
     
-    def _show_error_dialog(self, error_message: str):
-        """Показать окно ошибок"""
-        if not self.page:
-            print(f"Ошибка: {error_message}")
-            return
+    def _show_error_dialog(self, title: str = "Ошибка", message: str = ""):
+        """Показать окно с ошибками"""
+        # Если передана только message (для обратной совместимости)
+        if message == "" and title != "Ошибка":
+            message = title
+            title = "Ошибка"
         
-        def close_dialog(e):
-            self.page.dialog.open = False
-            self.page.update()
+        # Обрезать очень длинные ошибки
+        if len(message) > 500:
+            message = message[:500] + "...\n\n(Сообщение об ошибке усечено)"
         
-        # Обрезать очень длинные сообщение об ошибках
-        if len(error_message) > 500:
-            error_message = error_message[:500] + "...\n\n(Сообщение об ошибке обрезано)"
-        
-        error_dialog = ft.AlertDialog(
+        dialog = ft.AlertDialog(
             modal=True,
-            title=ft.Text("Ошибка", color="red"),
-            content=ft.Text(error_message),
+            title=ft.Text(title, color="red"),
+            content=ft.Text(message),
             actions=[
-                ft.TextButton("OK", on_click=close_dialog),
+                ft.TextButton("OK", on_click=lambda e: self._close_dialog(dialog)),
             ],
         )
         
-        self.page.dialog = error_dialog
-        error_dialog.open = True
+        self.page.dialog = dialog
+        dialog.open = True
         self.page.update()
     
     def _show_info_dialog(self, title: str, message: str):
-        """Покащать окно с информацией"""
-        if not self.page:
-            print(f"Информация: {title} - {message}")
-            return
-        
-        def close_dialog(e):
-            self.page.dialog.open = False
-            self.page.update()
-        
-        info_dialog = ft.AlertDialog(
+        """Показать окно с информацией"""
+        dialog = ft.AlertDialog(
             modal=True,
             title=ft.Text(title),
             content=ft.Text(message),
             actions=[
-                ft.TextButton("OK", on_click=close_dialog),
+                ft.TextButton("OK", on_click=lambda e: self._close_dialog(dialog)),
             ],
         )
         
-        self.page.dialog = info_dialog
-        info_dialog.open = True
+        self.page.dialog = dialog
+        dialog.open = True
+        self.page.update()
+    
+    def _close_dialog(self, dialog: ft.AlertDialog):
+        """Закрыть окно"""
+        dialog.open = False
         self.page.update()
     
     def build(self) -> ft.Tabs:
-        """Запуск основного окна"""
+        """Построение основного окна"""
         return self.main_tabs
 
 def main(page: ft.Page):
-    """Входная точка"""
+    """Входная точка программы"""
     # Конфигурация страницы
     page.title = "Интерпретатор Алгоритмов Маркова"
     page.theme_mode = ft.ThemeMode.LIGHT
     page.padding = 0
     page.scroll = ft.ScrollMode.ADAPTIVE
     
-    # Размер страницы
+    # Задать размер окна
     page.window.width = 1200
     page.window.height = 800
     page.window.min_width = 800
     page.window.min_height = 600
     
-    # Создать и добавить
+    # Создать и добавить приложение
     app = MarkovApp(page)
     page.add(app.build())
 
 if __name__ == "__main__":
-    ft.app(target=main)
+    ft.app(target=main, view = ft.WEB_BROWSER)

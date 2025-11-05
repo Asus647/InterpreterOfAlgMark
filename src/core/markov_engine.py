@@ -145,7 +145,7 @@ class MarkovEngine:
         # Предвыполняемае проверка
         warnings = self.validate_rule_set()
         if warnings and verbose:
-            print("Potential issues detected:", warnings)
+            print("Обнарудены потенциальные проблемы:", warnings)
         
         # Основной цикл исполнения
         while iteration < self.max_iterations:
@@ -173,7 +173,7 @@ class MarkovEngine:
                     # Проверка на длину выводимого значения
                     if len(work_string) > self.max_output_length:
                         raise ExecutionLimitError(
-                            f"Output length exceeded limit: {len(work_string)} > {self.max_output_length}"
+                            f"Достигнут лимит результата: {len(work_string)} > {self.max_output_length}"
                         )
                     
                     # Проверка на терминальное правило
@@ -190,7 +190,7 @@ class MarkovEngine:
         # Достигнут лимит итераций
         self.stats['total_cycles_detected'] += 1
         raise ExecutionLimitError(
-            f"Maximum iterations reached: {self.max_iterations}"
+            f"Достигнут максимум итераций: {self.max_iterations}"
         )
     
     def _build_result(self, output: str, status: str, iterations: int, 

@@ -1,0 +1,17 @@
+{
+  "version": "1.0",
+  "type": "markov_rules",
+  "rules_count": 2,
+  "rules": [
+    {
+      "pattern": "aa",
+      "replacement": "b",
+      "is_final": false
+    },
+    {
+      "pattern": "bb",
+      "replacement": "c",
+      "is_final": true
+    }
+  ]
+}

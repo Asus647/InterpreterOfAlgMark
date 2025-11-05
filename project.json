@@ -1,0 +1,21 @@
+{
+  "version": "1.0",
+  "metadata": {
+    "name": "project",
+    "rules_count": 2
+  },
+  "rules": [
+    {
+      "pattern": "aa",
+      "replacement": "b",
+      "is_final": false
+    },
+    {
+      "pattern": "bb",
+      "replacement": "c",
+      "is_final": true
+    }
+  ],
+  "input_text": "aaaa",
+  "output_text": "c"
+}
